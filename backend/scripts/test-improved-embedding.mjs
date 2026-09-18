@@ -1,12 +1,5 @@
-/**
- * High-Performance Domain-Aware Vector Embedding Engine (384 dimensions)
- * Combines stop-word elimination, morphological stemming, dense latent semantic
- * topic clusters, and subword hashing for production-grade semantic search.
- */
-
 const DIMS = 384;
 
-// Common English stop words that cause false semantic collisions
 const STOP_WORDS = new Set([
   'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'as', 'at',
   'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by',
@@ -27,10 +20,9 @@ const STOP_WORDS = new Set([
   'you', 'your', 'yours', 'yourself', 'yourselves'
 ]);
 
-// Latent Semantic Topic Clusters for workspace domains
 const TOPIC_CLUSTERS = [
   {
-    name: 'security_rbac_auth',
+    name: 'security_rbac',
     baseDim: 180,
     terms: [
       'security', 'permission', 'permissions', 'rbac', 'access', 'control', 'role', 'roles',
@@ -40,7 +32,7 @@ const TOPIC_CLUSTERS = [
     ]
   },
   {
-    name: 'database_raft_storage',
+    name: 'database_raft',
     baseDim: 212,
     terms: [
       'database', 'pacificdb', 'raft', 'consensus', 'replica', 'replicas', 'replication',
@@ -58,7 +50,7 @@ const TOPIC_CLUSTERS = [
     ]
   },
   {
-    name: 'payment_billing_stripe',
+    name: 'payment_billing',
     baseDim: 276,
     terms: [
       'payment', 'payments', 'billing', 'stripe', 'invoice', 'invoices', 'checkout', 'card',
@@ -66,7 +58,7 @@ const TOPIC_CLUSTERS = [
     ]
   },
   {
-    name: 'ui_frontend_kanban',
+    name: 'ui_frontend',
     baseDim: 308,
     terms: [
       'ui', 'frontend', 'ux', 'kanban', 'board', 'drag', 'drop', 'animation', 'animations',
@@ -75,7 +67,7 @@ const TOPIC_CLUSTERS = [
     ]
   },
   {
-    name: 'networking_tcp_stream',
+    name: 'network_tcp',
     baseDim: 340,
     terms: [
       'tcp', 'ndjson', 'socket', 'sockets', 'network', 'stream', 'streaming', 'connection',
@@ -84,7 +76,6 @@ const TOPIC_CLUSTERS = [
   }
 ];
 
-// Morphological stemmer
 function stemWord(w) {
   if (w.endsWith('ies') && w.length > 4) return w.slice(0, -3) + 'y';
   if (w.endsWith('es') && w.length > 4) return w.slice(0, -2);
@@ -96,7 +87,6 @@ function stemWord(w) {
   return w;
 }
 
-// 32-bit FNV-1a hash
 function hashToken(str, max) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
@@ -106,9 +96,6 @@ function hashToken(str, max) {
   return Math.abs(h) % max;
 }
 
-/**
- * Generates an L2-normalized 384-dimensional vector embedding.
- */
 export function generateEmbedding(text) {
   const vec = new Float64Array(DIMS);
   if (!text || typeof text !== 'string') return Array.from(vec);
@@ -119,7 +106,7 @@ export function generateEmbedding(text) {
   for (const raw of words) {
     const stemmed = stemWord(raw);
 
-    // Feature Space 1: Exact word & morphological stem (dims 0..179)
+    // Feature Space 1: Exact word & stem (dims 0..179)
     const d1 = hashToken(raw, 180);
     vec[d1] += 3.5;
     const d2 = hashToken(stemmed + '_stem', 180);
@@ -156,9 +143,6 @@ export function generateEmbedding(text) {
 
 export const generateSimpleEmbedding = generateEmbedding;
 
-/**
- * Normalized cosine similarity between two unit vectors: dot(a, b)
- */
 export function cosineSimilarity(a, b) {
   if (!a?.length || !b?.length || a.length !== b.length) return 0;
   let dot = 0;
@@ -168,4 +152,25 @@ export function cosineSimilarity(a, b) {
   return Math.max(0, Math.min(1.0, dot));
 }
 
-export default { generateEmbedding, generateSimpleEmbedding, cosineSimilarity };
+// Test script
+const tasks = [
+  { id: '1', title: 'Implement workspace role-based access control (RBAC)', desc: 'Owner, Admin, and Member permission enforcement on all project operations.' },
+  { id: '2', title: 'Audit query performance and secondary index usage', desc: 'Explain find queries and verify index scans vs table scans.' },
+  { id: '3', title: 'Implement PacificDB Raft consensus monitoring', desc: 'Track leader terms, commit indices, and follower replication lag in real time.' },
+  { id: '4', title: 'Design real-time task drag-and-drop Kanban board', desc: 'Smooth glassmorphism card animations with optimistic UI updates.' },
+  { id: '5', title: 'Optimize NDJSON TCP stream socket recycling', desc: 'Prevent socket exhaustion by eagerly tearing down connections after delimiter.' },
+  { id: '6', title: 'Fix payment webhook retries on stripe signature failure', desc: 'Handle idempotent events when processing incoming subscription renewals.' },
+];
+
+const testQuery = 'user permissions and security';
+const qVec = generateEmbedding(testQuery);
+
+console.log(`\nQuery: "${testQuery}"`);
+const scored = tasks.map(t => ({
+  title: t.title,
+  sim: cosineSimilarity(qVec, generateEmbedding(`${t.title} ${t.desc}`))
+})).sort((a, b) => b.sim - a.sim);
+
+scored.forEach((r, idx) => {
+  console.log(`Rank ${idx + 1}: [${(r.sim * 100).toFixed(1)}%] ${r.title}`);
+});

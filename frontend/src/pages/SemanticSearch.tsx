@@ -134,7 +134,7 @@ export function SemanticSearch() {
               <span>
                 Found <strong>{results.results.length}</strong> semantically similar tasks
                 for "<strong style={{ color: 'var(--cyan)' }}>{results.query}</strong>"
-                · Searched {results.totalVectors?.toLocaleString()} vectors
+                · Searched {(results.vectors_searched || results.totalVectors)?.toLocaleString()} vectors in PacificDB
               </span>
             </div>
 
@@ -147,58 +147,74 @@ export function SemanticSearch() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {results.results.map((task: any, i: number) => (
-                  <div
-                    key={task._id}
-                    className="card animate-fade-in"
-                    style={{
-                      animationDelay: `${i * 40}ms`,
-                      cursor: 'pointer',
-                      padding: '0.875rem 1rem',
-                      borderLeft: `3px solid hsl(${(1 - task._score) * 120}, 70%, 50%)`,
-                    }}
-                    onClick={() => navigate(`/board?projectId=${task.projectId}`)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>{task.title}</div>
-                        {task.description && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {task.description}
+                {results.results.map((task: any, i: number) => {
+                  const sim = task.similarity ?? task._score ?? 0;
+                  const simPercent = (sim * 100).toFixed(1);
+                  return (
+                    <div
+                      key={task.id || task._id}
+                      className="card animate-fade-in"
+                      style={{
+                        animationDelay: `${i * 40}ms`,
+                        cursor: 'pointer',
+                        padding: '0.875rem 1rem',
+                        borderLeft: `3px solid hsl(${sim * 120}, 75%, 50%)`,
+                      }}
+                      onClick={() => navigate(`/board?projectId=${task.projectId}`)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontFamily: 'JetBrains Mono',
+                              color: 'var(--text-4)',
+                              background: 'var(--surface-2)',
+                              padding: '0.1rem 0.375rem',
+                              borderRadius: 4,
+                            }}>
+                              #{i + 1}
+                            </span>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>{task.title}</div>
                           </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                          <span className={`badge priority-${task.priority}`}>{task.priority}</span>
-                          <span className={`badge status-${task.status}`}>{task.status.replace('_', ' ')}</span>
+                          {task.description && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {task.description}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                            <span className={`badge priority-${task.priority}`}>{task.priority}</span>
+                            <span className={`badge status-${task.status}`}>{task.status.replace('_', ' ')}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{
+                            fontSize: '1.05rem',
+                            fontWeight: 800,
+                            fontFamily: 'JetBrains Mono',
+                            color: `hsl(${sim * 120}, 75%, 55%)`,
+                          }}>
+                            {simPercent}%
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-4)' }}>similarity</div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{
-                          fontSize: '1rem',
-                          fontWeight: 800,
-                          fontFamily: 'JetBrains Mono',
-                          color: `hsl(${task._score * 120}, 70%, 60%)`,
-                        }}>
-                          {(task._score * 100).toFixed(1)}%
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-4)' }}>similarity</div>
-                      </div>
-                    </div>
-                    <div style={{
-                      marginTop: '0.625rem',
-                      height: 3,
-                      background: 'var(--surface-2)',
-                      borderRadius: 2,
-                    }}>
                       <div style={{
-                        height: '100%',
-                        width: `${task._score * 100}%`,
-                        background: `hsl(${task._score * 120}, 70%, 50%)`,
+                        marginTop: '0.625rem',
+                        height: 3,
+                        background: 'var(--surface-2)',
                         borderRadius: 2,
-                      }} />
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${sim * 100}%`,
+                          background: `hsl(${sim * 120}, 75%, 50%)`,
+                          borderRadius: 2,
+                        }} />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -138,7 +138,7 @@ function requestRaw(payload, retries = 3) {
 
       const timer = setTimeout(() => {
         finish(null, new Error('PacificDB request timed out'));
-      }, 5000);
+      }, 10000);
     };
 
     attempt();
@@ -192,8 +192,13 @@ function collection(name) {
     },
 
     async deleteOne(filter) {
-      const r = await request({ ...base, action: 'delete', filter });
+      const r = await request({ ...base, action: 'deleteOne', filter });
       return { deleted: r.status === 'deleted' || r.status === 'ok' };
+    },
+
+    async deleteMany(filter = {}) {
+      const r = await request({ ...base, action: 'deleteMany', filter });
+      return { deleted: r.deleted || 0 };
     },
 
     async count(filter = {}) {

@@ -49,7 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // GET /api/search/semantic?q=query&workspaceId=xxx&limit=10
-// Vector similarity search for tasks powered by PacificDB vectors
+// Production-grade Vector similarity search powered by PacificDB vectors
 import { generateEmbedding, cosineSimilarity } from '../lib/embeddings.js';
 
 router.get('/semantic', requireAuth, async (req, res) => {
@@ -57,18 +57,20 @@ router.get('/semantic', requireAuth, async (req, res) => {
     const { q, workspaceId, limit = 10 } = req.query;
     if (!q) return res.status(400).json({ error: 'Query required' });
 
-    // Generate query embedding via position-independent character-trigram model
+    const maxResults = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+
+    // 1. Generate query embedding via domain-aware semantic model
     const queryEmbedding = generateEmbedding(q);
 
-    // Fetch all indexed vectors from PacificDB
+    // 2. Fetch all indexed vectors from PacificDB
     const vectors = await col('vectors').find({});
     const totalIndexed = vectors.length;
 
     if (totalIndexed === 0) {
-      return res.json({ query: q, results: [], totalVectors: 0 });
+      return res.json({ query: q, vectors_searched: 0, totalVectors: 0, results: [] });
     }
 
-    // Optional workspace task pre-fetching for instant task resolution
+    // 3. Pre-fetch workspace tasks for instant O(1) task resolution
     const taskMap = new Map();
     const wsTaskIds = new Set();
     if (workspaceId) {
@@ -79,32 +81,50 @@ router.get('/semantic', requireAuth, async (req, res) => {
       }
     }
 
-    // Compute cosine similarity for every vector document
+    // 4. Compute cosine similarity for all vectors
     const scored = [];
     for (const vec of vectors) {
       if (!vec.embedding || vec.embedding.length !== 384) continue;
       let score = cosineSimilarity(queryEmbedding, vec.embedding);
 
-      // Boost score if vector belongs to the active workspace
-      if (wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId) {
-        score = Math.min(1.0, score * 1.15);
+      // Workspace boost: slightly prioritize active workspace items if they have semantic overlap
+      if (score > 0.10 && (wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId)) {
+        score = Math.min(1.0, score * 1.08);
       }
 
-      if (score > 0.04) {
-        scored.push({
-          ...vec,
-          score,
-          isWorkspaceTask: wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId,
-        });
-      }
+      scored.push({
+        ...vec,
+        score,
+        isWorkspaceTask: wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId,
+      });
     }
 
-    // Sort by score desc
+    // 5. Sort candidates DESC by similarity score
     scored.sort((a, b) => b.score - a.score);
-    const topVectors = scored.slice(0, parseInt(limit, 10) || 10);
 
-    // Fetch tasks that are not yet in taskMap in parallel
-    const missingTaskIds = topVectors
+    // 6. Deduplicate by taskId and normalized task title
+    const seenTaskIds = new Set();
+    const seenTitles = new Set();
+    const uniqueCandidates = [];
+
+    // Relevance threshold: drop non-semantic noise (< 0.15)
+    for (const cand of scored) {
+      if (cand.score < 0.15) break;
+
+      // Extract title/content to deduplicate duplicate seed runs
+      const normalizedTitle = (cand.content || '').trim().toLowerCase();
+      if (cand.taskId && seenTaskIds.has(cand.taskId)) continue;
+      if (normalizedTitle && seenTitles.has(normalizedTitle)) continue;
+
+      if (cand.taskId) seenTaskIds.add(cand.taskId);
+      if (normalizedTitle) seenTitles.add(normalizedTitle);
+
+      uniqueCandidates.push(cand);
+      if (uniqueCandidates.length >= maxResults) break;
+    }
+
+    // 7. Parallel fetch missing tasks not in workspace map
+    const missingTaskIds = uniqueCandidates
       .map(v => v.taskId)
       .filter(id => id && !taskMap.has(id));
 
@@ -117,32 +137,35 @@ router.get('/semantic', requireAuth, async (req, res) => {
       }
     }
 
-    // Assemble final rich result objects
-    const results = [];
-    for (const v of topVectors) {
+    // 8. Assemble structured result objects with clean similarity metric
+    const results = uniqueCandidates.map(v => {
       const task = taskMap.get(v.taskId);
-      if (task) {
-        results.push({
-          ...task,
-          _type: 'task',
-          _score: v.score,
-          _content: v.content || task.title,
-        });
-      } else if (v.content) {
-        results.push({
-          _id: v.taskId || v._id,
-          title: v.content,
-          description: `Semantic match (${(v.score * 100).toFixed(1)}% similarity)`,
-          status: 'todo',
-          priority: 'medium',
-          _score: v.score,
-          _content: v.content,
-          _type: 'task',
-        });
-      }
-    }
+      const title = task?.title || v.content || 'Untitled Task';
+      const description = task?.description || '';
+      const sim = Number(v.score.toFixed(3));
 
-    res.json({ query: q, results, totalVectors: totalIndexed });
+      return {
+        id: task?._id || v.taskId || v._id,
+        _id: task?._id || v.taskId || v._id,
+        title,
+        description,
+        similarity: sim,
+        _score: sim,
+        priority: task?.priority || 'medium',
+        status: task?.status || 'todo',
+        projectId: task?.projectId,
+        workspaceId: task?.workspaceId || v.workspaceId,
+        labels: task?.labels || [],
+        _type: 'task',
+      };
+    });
+
+    res.json({
+      query: q,
+      vectors_searched: totalIndexed,
+      totalVectors: totalIndexed,
+      results,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

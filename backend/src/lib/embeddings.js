@@ -41,16 +41,16 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'database_raft_storage',
-    baseDim: 212,
+    baseDim: 198,
     terms: [
       'database', 'pacificdb', 'raft', 'consensus', 'replica', 'replicas', 'replication',
       'follower', 'leader', 'election', 'term', 'terms', 'commit', 'sst', 'storage', 'engine',
-      'cluster', 'wal', 'indices', 'heartbeat'
+      'cluster', 'wal', 'indices', 'heartbeat', 'fault'
     ]
   },
   {
     name: 'query_index_perf',
-    baseDim: 244,
+    baseDim: 216,
     terms: [
       'query', 'queries', 'index', 'indexes', 'secondary', 'scan', 'scans', 'explain',
       'performance', 'audit', 'optimize', 'optimization', 'speed', 'slow', 'latency', 'p99',
@@ -59,27 +59,67 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'payment_billing_stripe',
-    baseDim: 276,
+    baseDim: 234,
     terms: [
       'payment', 'payments', 'billing', 'stripe', 'invoice', 'invoices', 'checkout', 'card',
       'subscription', 'subscriptions', 'webhook', 'webhooks', 'charge', 'refund', 'transaction'
     ]
   },
   {
-    name: 'ui_frontend_kanban',
-    baseDim: 308,
+    name: 'ui_frontend_styling',
+    baseDim: 252,
     terms: [
       'ui', 'frontend', 'ux', 'kanban', 'board', 'drag', 'drop', 'animation', 'animations',
-      'card', 'cards', 'glassmorphism', 'theme', 'dark', 'modal', 'layout', 'responsive',
-      'css', 'visual', 'interactive'
+      'card', 'cards', 'glassmorphism', 'theme', 'themes', 'styling', 'dark', 'modal', 'layout',
+      'responsive', 'hotkey', 'hotkeys', 'shortcuts', 'shortcut', 'css'
     ]
   },
   {
     name: 'networking_tcp_stream',
-    baseDim: 340,
+    baseDim: 270,
     terms: [
       'tcp', 'ndjson', 'socket', 'sockets', 'network', 'stream', 'streaming', 'connection',
-      'connections', 'recycling', 'exhaustion', 'pool', 'backpressure', 'keepalive', 'teardown'
+      'connections', 'recycling', 'exhaustion', 'pool', 'backpressure', 'keepalive', 'teardown', 'leak'
+    ]
+  },
+  {
+    name: 'backup_disaster_recovery',
+    baseDim: 288,
+    terms: [
+      'backup', 'backups', 'snapshot', 'snapshots', 'restore', 'recovery', 'sst', 'checksum',
+      'disaster', 'point-in-time', 'crc32', 'automated'
+    ]
+  },
+  {
+    name: 'webhooks_notifications_slack',
+    baseDim: 306,
+    terms: [
+      'webhook', 'webhooks', 'slack', 'discord', 'notification', 'notifications', 'alert', 'alerts',
+      'endpoint', 'endpoints', 'integration', 'integrations'
+    ]
+  },
+  {
+    name: 'chat_collaboration_media',
+    baseDim: 324,
+    terms: [
+      'chat', 'messaging', 'media', 'attachment', 'attachments', 'upload', 'uploads', 'discussion',
+      'discussions', 'channel', 'channels', 'sharing', 'collaborative', 'realtime'
+    ]
+  },
+  {
+    name: 'onboarding_product_walkthrough',
+    baseDim: 342,
+    terms: [
+      'onboarding', 'walkthrough', 'guide', 'guiding', 'tour', 'tutorial', 'employee', 'employees',
+      'product', 'guidance', 'overview'
+    ]
+  },
+  {
+    name: 'chaos_resilience_failover',
+    baseDim: 360,
+    terms: [
+      'chaos', 'resilience', 'simulator', 'partition', 'crash', 'failover', 'kill', 'tolerance',
+      'recovery'
     ]
   }
 ];

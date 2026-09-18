@@ -124,27 +124,25 @@ async function run() {
     },
   ];
 
-  for (const t of tasksToSeed) {
-    const taskId = uuidv4();
-    await col('tasks').insertOne({
-      _id: taskId,
-      projectId: p._id,
-      workspaceId: ws._id,
-      title: t.title,
-      description: t.description,
-      status: t.status,
-      priority: t.priority,
-      assigneeIds: [user._id],
-      dueDate: t.dueDate,
-      labels: t.labels,
-      attachmentIds: [],
-      createdBy: user._id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-  }
+  const newTasks = tasksToSeed.map(t => ({
+    _id: uuidv4(),
+    projectId: p._id,
+    workspaceId: ws._id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    priority: t.priority,
+    assigneeIds: [user._id],
+    dueDate: t.dueDate,
+    labels: t.labels,
+    attachmentIds: [],
+    createdBy: user._id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
 
-  console.log(`Successfully seeded ${tasksToSeed.length} tasks into PacificBoard Dev!`);
+  await col('tasks').insertMany(newTasks);
+  console.log(`Successfully seeded ${newTasks.length} tasks into PacificBoard Dev!`);
   process.exit(0);
 }
 

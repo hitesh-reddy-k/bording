@@ -71,17 +71,16 @@ async function run() {
   };
 
   // Seed messages with staggered historical timestamps
-  let totalInserted = 0;
+  const allMessages = [];
   const now = Date.now();
 
   for (const [channelId, msgs] of Object.entries(conversations)) {
     for (let i = 0; i < msgs.length; i++) {
       const item = msgs[i];
       const member = team.find(m => m.id === item.author) || team[0];
-      // Stagger timestamps over the past few hours
       const createdAt = new Date(now - (msgs.length - i) * 180000).toISOString();
 
-      const messageDoc = {
+      allMessages.push({
         _id: uuidv4(),
         workspaceId,
         channelId,
@@ -89,14 +88,12 @@ async function run() {
         authorName: member.name,
         content: item.text,
         createdAt,
-      };
-
-      await col('messages').insertOne(messageDoc);
-      totalInserted++;
+      });
     }
   }
 
-  console.log(`✅ Successfully seeded ${totalInserted} chat messages directly into PacificDB!`);
+  await col('messages').insertMany(allMessages);
+  console.log(`✅ Successfully seeded ${allMessages.length} chat messages directly into PacificDB!`);
   console.log(`Channels populated: #general, #dev, #design, #random`);
   process.exit(0);
 }

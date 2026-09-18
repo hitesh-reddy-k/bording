@@ -1,7 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { col } from '../db.js';
-import { generateSimpleEmbedding } from './tasks.js';
+import { generateEmbedding, generateSimpleEmbedding } from '../lib/embeddings.js';
 
 const router = express.Router();
 
@@ -465,7 +465,7 @@ router.post('/chaos/data-integrity', async (req, res) => {
   }
 });
 
-// POST /api/admin/seed - seed initial dataset
+// POST /api/admin/seed - seed initial dataset with high-throughput batching
 router.post('/seed', async (req, res) => {
   try {
     const { users: userCount = 10, projects: projectCount = 5, tasks: taskCount = 50, messages: messageCount = 100, workspaceId: requestedWsId } = req.body;
@@ -495,81 +495,126 @@ router.post('/seed', async (req, res) => {
       };
       await col('workspaces').insertOne(ws);
     } else if (demoUser && ws.members && !ws.members.some(m => m.userId === demoUser._id)) {
-      // Ensure demo user is member so they can access it immediately
       const updatedMembers = [...ws.members, { userId: demoUser._id, role: 'admin' }];
       await col('workspaces').updateOne({ _id: ws._id }, { members: updatedMembers });
     }
 
+    // 1. Seed Projects (Batch)
     let existingProjects = await col('projects').find({ workspaceId });
     let projectIds = existingProjects.map(p => p._id);
 
     if (projectIds.length === 0 || projectCount > existingProjects.length) {
-      const needed = Math.max(projectCount - projectIds.length, 1);
+      const needed = Math.max(projectCount - existingProjects.length, 1);
+      const newProjects = [];
+      const projectThemes = [
+        'Backend API Core', 'Frontend UI Glass', 'Mobile Client', 'Data Pipeline',
+        'Infrastructure & Raft', 'Auth & RBAC Service', 'Analytics Engine',
+        'Billing & Stripe Webhook', 'Notification Hub', 'Vector Search Cluster'
+      ];
       for (let i = 0; i < needed; i++) {
         const pid = uuidv4();
         projectIds.push(pid);
-        await col('projects').insertOne({
+        newProjects.push({
           _id: pid,
           workspaceId,
-          name: `Project ${existingProjects.length + i + 1}: ${rand(['Backend API', 'Frontend UI', 'Mobile App', 'Data Pipeline', 'Infrastructure'])}`,
-          description: 'Seeded project',
-          color: `hsl(${((existingProjects.length + i) * 60) % 360}, 70%, 55%)`,
+          name: `Project ${existingProjects.length + i + 1}: ${projectThemes[i % projectThemes.length]}`,
+          description: 'Seeded high-performance project',
+          color: `hsl(${((existingProjects.length + i) * 36) % 360}, 75%, 55%)`,
           status: 'active',
           createdBy: demoUser ? demoUser._id : 'seed',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
       }
-    }
-
-    let taskIds = [];
-    const batchSize = 10;
-    for (let i = 0; i < taskCount; i += batchSize) {
-      const batch = [];
-      for (let j = i; j < Math.min(i + batchSize, taskCount); j++) {
-        const title = randTitle();
-        const tid = uuidv4();
-        taskIds.push(tid);
-        batch.push(col('tasks').insertOne({
-          _id: tid,
-          projectId: rand(projectIds),
-          workspaceId,
-          title,
-          description: `Seeded task: ${title}`,
-          priority: rand(SAMPLE_PRIORITIES),
-          status: rand(SAMPLE_STATUSES),
-          assigneeIds: demoUser ? [demoUser._id] : [],
-          dueDate: new Date(Date.now() + 86400000 * (j % 7 + 1)).toISOString().slice(0, 10),
-          labels: [rand(SAMPLE_WORDS), rand(['bug', 'feature', 'enhancement'])],
-          attachmentIds: [],
-          createdBy: demoUser ? demoUser._id : 'seed',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-        batch.push(col('vectors').insertOne({
-          _id: uuidv4(),
-          workspaceId,
-          taskId: tid,
-          embedding: generateSimpleEmbedding(title),
-          content: title,
-          createdAt: new Date().toISOString(),
-        }));
+      if (newProjects.length > 0) {
+        await col('projects').insertMany(newProjects);
       }
-      await Promise.all(batch);
     }
 
-    const teamNames = ['Alice Chen', 'Bob Miller', 'Carol White', 'Dave Evans', 'Elena Rostova'];
+    // 2. Seed Tasks & Vectors (Batch)
+    const newTasks = [];
+    const newVectors = [];
+    for (let j = 0; j < taskCount; j++) {
+      const title = randTitle();
+      const tid = uuidv4();
+      const pid = rand(projectIds);
+      newTasks.push({
+        _id: tid,
+        projectId: pid,
+        workspaceId,
+        title,
+        description: `Seeded task: ${title}. Built for high concurrency testing in PacificDB.`,
+        priority: rand(SAMPLE_PRIORITIES),
+        status: rand(SAMPLE_STATUSES),
+        assigneeIds: demoUser ? [demoUser._id] : [],
+        dueDate: new Date(Date.now() + 86400000 * (j % 7 + 1)).toISOString().slice(0, 10),
+        labels: [rand(SAMPLE_WORDS), rand(['bug', 'feature', 'enhancement'])],
+        attachmentIds: [],
+        createdBy: demoUser ? demoUser._id : 'seed',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      newVectors.push({
+        _id: uuidv4(),
+        workspaceId,
+        taskId: tid,
+        embedding: generateEmbedding(title),
+        content: title,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    if (newTasks.length > 0) {
+      await col('tasks').insertMany(newTasks);
+      await col('vectors').insertMany(newVectors);
+    }
+
+    // 3. Seed Messages (Batch)
+    const teamNames = ['Alice Chen', 'Bob Miller', 'Carol White', 'Dave Evans', 'Elena Rostova', 'Marcus Vance', 'Sarah Connor'];
+    const newMessages = [];
     for (let i = 0; i < messageCount; i++) {
       const author = rand(teamNames);
-      await col('messages').insertOne({
+      newMessages.push({
         _id: uuidv4(),
         workspaceId,
         channelId: rand(['general', 'dev', 'design', 'random']),
         authorId: `team-${author.toLowerCase().replace(' ', '-')}`,
         authorName: author,
-        content: `Team update ${i + 1}: ${rand(SAMPLE_WORDS)} on ${rand(['Raft monitoring', 'Kanban UX', 'Vector indexing', 'NDJSON stream latency'])}`,
+        content: `Team update ${i + 1}: ${rand(SAMPLE_WORDS)} on ${rand(['Raft monitoring', 'Kanban UX', 'Vector indexing', 'NDJSON stream latency', 'Disaster recovery', 'TCP recycling'])}`,
         createdAt: new Date(Date.now() - (messageCount - i) * 60000).toISOString(),
       });
+    }
+
+    if (newMessages.length > 0) {
+      await col('messages').insertMany(newMessages);
+    }
+
+    // 4. Seed Users (Batch) if requested
+    let seededUsersCount = 0;
+    if (userCount && userCount > 0) {
+      const existingUsers = await col('users').count({});
+      if (existingUsers < userCount) {
+        const neededUsers = userCount - existingUsers;
+        const newUsers = [];
+        for (let i = 0; i < neededUsers; i++) {
+          const uId = uuidv4();
+          const firstName = rand(['Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Jamie', 'Dakota']);
+          const lastName = rand(['Smith', 'Patel', 'Kim', 'Garcia', 'Muller', 'Tanaka', 'Silva', 'Ivanov', 'Novak', 'Al-Mansoor']);
+          const uName = `${firstName} ${lastName}`;
+          newUsers.push({
+            _id: uId,
+            name: uName,
+            email: `user_${Date.now()}_${i}@pacificboard.dev`,
+            role: rand(['admin', 'member', 'viewer']),
+            avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(uName)}`,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        if (newUsers.length > 0) {
+          await col('users').insertMany(newUsers);
+          seededUsersCount = newUsers.length;
+        }
+      }
     }
 
     res.json({
@@ -578,8 +623,10 @@ router.post('/seed', async (req, res) => {
       projects: projectIds.length,
       tasks: taskCount,
       messages: messageCount,
+      users: seededUsersCount,
     });
   } catch (err) {
+    console.error('Seeding error:', err);
     res.status(500).json({ error: err.message });
   }
 });

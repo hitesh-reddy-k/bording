@@ -23,8 +23,8 @@ const DB_HOST = process.env.PACIFICDB_HOST || '127.0.0.1';
 const DB_PORT = parseInt(process.env.PACIFICDB_PORT || '9000', 10);
 
 // Concurrency limiter to prevent exhausting PacificDB connections
-const MAX_CONCURRENT = 8;
-const MAX_QUEUE = 200;
+const MAX_CONCURRENT = 16;
+const MAX_QUEUE = 10000;
 let activeConnections = 0;
 const requestQueue = [];
 
@@ -43,7 +43,7 @@ function drainQueue() {
 }
 
 /** Send a single NDJSON request through the concurrency limiter. */
-function request(payload, retries = 3) {
+function request(payload, retries = 5) {
   return new Promise((resolve, reject) => {
     if (requestQueue.length >= MAX_QUEUE) {
       return reject(new Error('PacificDB query queue full (server busy)'));
@@ -52,7 +52,7 @@ function request(payload, retries = 3) {
     const queueTimeout = setTimeout(() => {
       item.aborted = true;
       reject(new Error('PacificDB request queue timeout'));
-    }, 12000);
+    }, 60000);
 
     item.resolve = (val) => { clearTimeout(queueTimeout); resolve(val); };
     item.reject = (err) => { clearTimeout(queueTimeout); reject(err); };
@@ -63,7 +63,7 @@ function request(payload, retries = 3) {
 }
 
 /** Low-level socket request. Destroys socket immediately on complete NDJSON line. */
-function requestRaw(payload, retries = 3) {
+function requestRaw(payload, retries = 5) {
   return new Promise((resolve, reject) => {
     let remainingRetries = retries;
 
@@ -97,7 +97,9 @@ function requestRaw(payload, retries = 3) {
                 done = true;
                 clearTimeout(timer);
                 s.destroy();
-                const delay = Math.min(parsed.retry_after_ms || 200, 1000);
+                const baseDelay = parsed.retry_after_ms || (80 * Math.pow(1.8, 5 - remainingRetries));
+                const jitter = Math.floor(Math.random() * 40);
+                const delay = Math.min(baseDelay + jitter, 1500);
                 setTimeout(attempt, delay);
                 return;
               }
@@ -130,7 +132,8 @@ function requestRaw(payload, retries = 3) {
           done = true;
           clearTimeout(timer);
           s.destroy();
-          setTimeout(attempt, 200);
+          const delay = 80 * Math.pow(1.8, 5 - remainingRetries) + Math.floor(Math.random() * 40);
+          setTimeout(attempt, delay);
         } else {
           finish(null, err);
         }
@@ -138,7 +141,7 @@ function requestRaw(payload, retries = 3) {
 
       const timer = setTimeout(() => {
         finish(null, new Error('PacificDB request timed out'));
-      }, 10000);
+      }, 30000);
     };
 
     attempt();
@@ -167,6 +170,23 @@ function collection(name) {
       if (!doc.createdAt) doc.createdAt = new Date().toISOString();
       const r = await request({ ...base, action: 'insert', document: doc });
       return { id: doc._id, inserted: r.status === 'ok' };
+    },
+
+    async insertMany(docs) {
+      if (!Array.isArray(docs) || docs.length === 0) return { inserted: 0 };
+      for (const doc of docs) {
+        if (!doc._id) doc._id = randomUUID();
+        if (!doc.createdAt) doc.createdAt = new Date().toISOString();
+      }
+      // Chunk in batches of 100 to prevent oversized TCP buffer lines
+      const CHUNK_SIZE = 100;
+      let totalInserted = 0;
+      for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+        const chunk = docs.slice(i, i + CHUNK_SIZE);
+        const r = await request({ ...base, action: 'insertMany', documents: chunk });
+        totalInserted += (r.inserted ?? chunk.length);
+      }
+      return { inserted: totalInserted };
     },
 
     async findOne(filter) {

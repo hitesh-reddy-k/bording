@@ -169,12 +169,13 @@ async function run() {
   ];
 
   const existingTasks = await col('tasks').find({ projectId: primaryProject._id });
-  let tasksAdded = 0;
 
   if (existingTasks.length < 5) {
+    const taskDocs = [];
+    const vectorDocs = [];
     for (const t of sampleTasks) {
       const taskId = uuidv4();
-      const taskDoc = {
+      taskDocs.push({
         _id: taskId,
         projectId: primaryProject._id,
         workspaceId: ws._id,
@@ -189,22 +190,20 @@ async function run() {
         createdBy: demoUser._id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
-      await col('tasks').insertOne(taskDoc);
+      });
 
-      // Generate & insert vector embedding
-      const vectorDoc = {
+      vectorDocs.push({
         _id: uuidv4(),
         workspaceId: ws._id,
         taskId: taskId,
         content: `${t.title} ${t.description}`,
         embedding: generateSimpleEmbedding(`${t.title} ${t.description}`),
         createdAt: new Date().toISOString(),
-      };
-      await col('vectors').insertOne(vectorDoc);
-      tasksAdded++;
+      });
     }
-    console.log(`✅ Seeded ${tasksAdded} tasks with vector embeddings into "${primaryProject.name}"`);
+    await col('tasks').insertMany(taskDocs);
+    await col('vectors').insertMany(vectorDocs);
+    console.log(`✅ Seeded ${taskDocs.length} tasks with vector embeddings into "${primaryProject.name}"`);
   } else {
     console.log(`ℹ️  Found ${existingTasks.length} existing tasks in "${primaryProject.name}"`);
   }
@@ -222,18 +221,18 @@ async function run() {
       { ch: 'random', authorId: 'team-bob-miller', authorName: 'Bob Miller', text: 'Why do programmers prefer dark mode? Because light attracts bugs! 🐛' },
     ];
 
-    for (const cm of chatSamples) {
-      await col('messages').insertOne({
-        _id: uuidv4(),
-        workspaceId: ws._id,
-        channelId: cm.ch,
-        authorId: cm.authorId,
-        authorName: cm.authorName,
-        content: cm.text,
-        createdAt: new Date().toISOString(),
-      });
-    }
-    console.log(`✅ Seeded ${chatSamples.length} chat messages across #general, #dev, #design, #random`);
+    const messageDocs = chatSamples.map(cm => ({
+      _id: uuidv4(),
+      workspaceId: ws._id,
+      channelId: cm.ch,
+      authorId: cm.authorId,
+      authorName: cm.authorName,
+      content: cm.text,
+      createdAt: new Date().toISOString(),
+    }));
+
+    await col('messages').insertMany(messageDocs);
+    console.log(`✅ Seeded ${messageDocs.length} chat messages across #general, #dev, #design, #random`);
   } else {
     console.log(`ℹ️  Found ${existingMsgs.length} existing chat messages in workspace`);
   }

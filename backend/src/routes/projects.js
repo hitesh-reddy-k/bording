@@ -11,7 +11,7 @@ router.get('/', requireAuth, async (req, res) => {
     const { workspaceId } = req.query;
     if (!workspaceId) return res.status(400).json({ error: 'workspaceId required' });
 
-    const projects = await col('projects').find({ workspaceId });
+    const projects = await col('projects').find({ workspaceId }, { limit: 100 });
     const sorted = projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(sorted);
   } catch (err) {

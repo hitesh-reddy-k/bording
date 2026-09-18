@@ -1,0 +1,134 @@
+[
+  {
+    "_id": "47273cf4-5146-428a-a4f1-742e5b5a017f",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "PacificBoard Dev",
+    "description": "Core full-stack web application powered by PacificDB",
+    "color": "#4f9eff",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T13:45:26.810Z",
+    "updatedAt": "2026-09-18T13:45:26.810Z"
+  },
+  {
+    "_id": "366f7af9-50f2-4095-9eee-84c71e4dfbb6",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 3: Backend API",
+    "description": "Seeded project",
+    "color": "hsl(120, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T15:06:20.518Z",
+    "updatedAt": "2026-09-18T15:06:20.518Z"
+  },
+  {
+    "_id": "cca6989b-921a-4799-a019-5881ee90033f",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 4: Frontend UI",
+    "description": "Seeded project",
+    "color": "hsl(180, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T15:06:20.568Z",
+    "updatedAt": "2026-09-18T15:06:20.568Z"
+  },
+  {
+    "_id": "6b8cf81d-b33c-487f-807d-402e89ca9e31",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 5: Backend API",
+    "description": "Seeded project",
+    "color": "hsl(240, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T15:06:20.610Z",
+    "updatedAt": "2026-09-18T15:06:20.610Z"
+  },
+  {
+    "_id": "2f85ca2d-bae3-4f3c-adf6-79f368d1b876",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 6: Frontend UI",
+    "description": "Seeded project",
+    "color": "hsl(300, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T16:20:53.647Z",
+    "updatedAt": "2026-09-18T16:20:53.647Z"
+  },
+  {
+    "_id": "9fa3f6b9-bca0-450a-ab35-d24d6e3dddf1",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 7: Infrastructure",
+    "description": "Seeded project",
+    "color": "hsl(0, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T16:20:58.674Z",
+    "updatedAt": "2026-09-18T16:20:58.674Z"
+  },
+  {
+    "_id": "b0c27bee-0aa7-45fe-b39f-f218311c026c",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 8: Infrastructure",
+    "description": "Seeded project",
+    "color": "hsl(60, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T16:21:04.269Z",
+    "updatedAt": "2026-09-18T16:21:04.269Z"
+  },
+  {
+    "_id": "e472fc5c-ad01-4b91-8b1d-078edd617e56",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 9: Backend API",
+    "description": "Seeded project",
+    "color": "hsl(120, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T16:21:09.267Z",
+    "updatedAt": "2026-09-18T16:21:09.267Z"
+  },
+  {
+    "_id": "234140db-7242-4721-99eb-c4b845dc6027",
+    "workspaceId": "a291450f-ff37-4241-b7c2-ac24486a12d1",
+    "name": "Project 10: Backend API",
+    "description": "Seeded project",
+    "color": "hsl(180, 70%, 55%)",
+    "status": "active",
+    "createdBy": "d65845fb-8e61-4637-b42f-4a33e894a5a8",
+    "createdAt": "2026-09-18T16:21:15.161Z",
+    "updatedAt": "2026-09-18T16:21:15.161Z"
+  },
+  {
+    "_id": "b0632cfb-2676-4003-bde0-c2a9416c084a",
+    "workspaceId": "c6893dc4-9ed2-4c62-9292-9f5f05df93d7",
+    "name": "Bot Test Project",
+    "description": "Automated load test project",
+    "color": "#4f9eff",
+    "status": "active",
+    "createdBy": "bot",
+    "createdAt": "2026-09-18T13:47:56.137Z",
+    "updatedAt": "2026-09-18T13:47:56.137Z"
+  },
+  {
+    "_id": "37616117-7ddd-42de-8bbd-f9a9a350e284",
+    "workspaceId": "5b76269b-a102-4717-b9b0-b5235c85108a",
+    "name": "E2E Project",
+    "description": "Test project",
+    "color": "#4f9eff",
+    "status": "active",
+    "createdBy": "c357558a-5d8c-44d8-be0a-45721e62db75",
+    "createdAt": "2026-09-18T13:50:11.293Z",
+    "updatedAt": "2026-09-18T13:50:11.293Z"
+  },
+  {
+    "_id": "57629491-81de-4127-b2bc-05fde67f38c8",
+    "workspaceId": "c6893dc4-9ed2-4c62-9292-9f5f05df93d7",
+    "name": "Bot Test Project 2",
+    "description": "Automated load test project",
+    "color": "#4f9eff",
+    "status": "active",
+    "createdBy": "bot",
+    "createdAt": "2026-09-18T13:50:11.293Z",
+    "updatedAt": "2026-09-18T13:50:11.293Z"
+  }
+]

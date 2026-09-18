@@ -27,7 +27,7 @@ const STOP_WORDS = new Set([
   'you', 'your', 'yours', 'yourself', 'yourselves'
 ]);
 
-// Latent Semantic Topic Clusters for workspace domains
+// Latent Semantic Topic Clusters for workspace domains (12 clusters x 16 dims = 192 dims, 180..371)
 const TOPIC_CLUSTERS = [
   {
     name: 'security_rbac_auth',
@@ -41,7 +41,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'database_raft_storage',
-    baseDim: 198,
+    baseDim: 196,
     terms: [
       'database', 'pacificdb', 'raft', 'consensus', 'replica', 'replicas', 'replication',
       'follower', 'leader', 'election', 'term', 'terms', 'commit', 'sst', 'storage', 'engine',
@@ -50,7 +50,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'query_index_perf',
-    baseDim: 216,
+    baseDim: 212,
     terms: [
       'query', 'queries', 'index', 'indexes', 'secondary', 'scan', 'scans', 'explain',
       'performance', 'audit', 'optimize', 'optimization', 'speed', 'slow', 'latency', 'p99',
@@ -59,24 +59,31 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'payment_billing_stripe',
-    baseDim: 234,
+    baseDim: 228,
     terms: [
       'payment', 'payments', 'billing', 'stripe', 'invoice', 'invoices', 'checkout', 'card',
       'subscription', 'subscriptions', 'webhook', 'webhooks', 'charge', 'refund', 'transaction'
     ]
   },
   {
-    name: 'ui_frontend_styling',
-    baseDim: 252,
+    name: 'ui_kanban_board',
+    baseDim: 244,
     terms: [
-      'ui', 'frontend', 'ux', 'kanban', 'board', 'drag', 'drop', 'animation', 'animations',
-      'card', 'cards', 'glassmorphism', 'theme', 'themes', 'styling', 'dark', 'modal', 'layout',
-      'responsive', 'hotkey', 'hotkeys', 'shortcuts', 'shortcut', 'css'
+      'kanban', 'board', 'boards', 'drag', 'drop', 'column', 'columns', 'card', 'cards',
+      'glassmorphism', 'animation', 'animations', 'layout', 'responsive'
+    ]
+  },
+  {
+    name: 'theme_hotkeys_accessibility',
+    baseDim: 260,
+    terms: [
+      'theme', 'themes', 'dark', 'light', 'styling', 'mode', 'hotkey', 'hotkeys',
+      'shortcut', 'shortcuts', 'keyboard', 'navigation', 'cmd', 'ctrl'
     ]
   },
   {
     name: 'networking_tcp_stream',
-    baseDim: 270,
+    baseDim: 276,
     terms: [
       'tcp', 'ndjson', 'socket', 'sockets', 'network', 'stream', 'streaming', 'connection',
       'connections', 'recycling', 'exhaustion', 'pool', 'backpressure', 'keepalive', 'teardown', 'leak'
@@ -84,7 +91,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'backup_disaster_recovery',
-    baseDim: 288,
+    baseDim: 292,
     terms: [
       'backup', 'backups', 'snapshot', 'snapshots', 'restore', 'recovery', 'sst', 'checksum',
       'disaster', 'point-in-time', 'crc32', 'automated'
@@ -92,7 +99,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'webhooks_notifications_slack',
-    baseDim: 306,
+    baseDim: 308,
     terms: [
       'webhook', 'webhooks', 'slack', 'discord', 'notification', 'notifications', 'alert', 'alerts',
       'endpoint', 'endpoints', 'integration', 'integrations'
@@ -108,7 +115,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'onboarding_product_walkthrough',
-    baseDim: 342,
+    baseDim: 340,
     terms: [
       'onboarding', 'walkthrough', 'guide', 'guiding', 'tour', 'tutorial', 'employee', 'employees',
       'product', 'guidance', 'overview'
@@ -116,7 +123,7 @@ const TOPIC_CLUSTERS = [
   },
   {
     name: 'chaos_resilience_failover',
-    baseDim: 360,
+    baseDim: 356,
     terms: [
       'chaos', 'resilience', 'simulator', 'partition', 'crash', 'failover', 'kill', 'tolerance',
       'recovery'

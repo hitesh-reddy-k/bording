@@ -62,10 +62,32 @@ function request(payload, retries = 5) {
   });
 }
 
+const DB_LOG = process.env.PACIFICDB_LOG !== 'false';
+
 /** Low-level socket request. Destroys socket immediately on complete NDJSON line. */
 function requestRaw(payload, retries = 5) {
   return new Promise((resolve, reject) => {
     let remainingRetries = retries;
+    const t0 = Date.now();
+
+    let queryDesc = payload.action;
+    if (payload.action === 'find') {
+      queryDesc = `find(${JSON.stringify(payload.filter || {})}${payload.limit ? `, limit:${payload.limit}` : ''})`;
+    } else if (payload.action === 'insert') {
+      queryDesc = `insertOne(${payload.document?._id ? payload.document._id.slice(0, 8) + '...' : ''})`;
+    } else if (payload.action === 'insertMany') {
+      queryDesc = `insertMany(${payload.documents?.length || 0} docs)`;
+    } else if (payload.action === 'update') {
+      queryDesc = `updateOne(${JSON.stringify(payload.filter || {})})`;
+    } else if (payload.action === 'deleteOne' || payload.action === 'deleteMany') {
+      queryDesc = `${payload.action}(${JSON.stringify(payload.filter || {})})`;
+    } else if (payload.action === 'count') {
+      queryDesc = `count(${JSON.stringify(payload.filter || {})})`;
+    }
+
+    if (DB_LOG && payload.action !== 'ping') {
+      console.log(`\x1b[36m[PacificDB ▶]\x1b[0m \x1b[33m${payload.collection || 'system'}\x1b[0m.${queryDesc}`);
+    }
 
     const attempt = () => {
       const s = net.connect(DB_PORT, DB_HOST);
@@ -77,8 +99,19 @@ function requestRaw(payload, retries = 5) {
         done = true;
         clearTimeout(timer);
         s.destroy();
-        if (error) reject(error);
-        else resolve(result);
+        const duration = Date.now() - t0;
+        if (error) {
+          if (DB_LOG && payload.action !== 'ping') {
+            console.error(`\x1b[31m[PacificDB ✖]\x1b[0m \x1b[33m${payload.collection || 'system'}\x1b[0m.${payload.action} \x1b[31mFAILED\x1b[0m: ${error.message} (${duration}ms)`);
+          }
+          reject(error);
+        } else {
+          if (DB_LOG && payload.action !== 'ping') {
+            const countInfo = result.data ? `${result.data.length} docs` : result.inserted !== undefined ? `${result.inserted} inserted` : result.deleted !== undefined ? `${result.deleted} deleted` : result.count !== undefined ? `${result.count} count` : (result.status || 'ok');
+            console.log(`\x1b[32m[PacificDB ◀]\x1b[0m \x1b[33m${payload.collection || 'system'}\x1b[0m.${payload.action} → \x1b[32m${countInfo}\x1b[0m (${duration}ms)`);
+          }
+          resolve(result);
+        }
       };
 
       s.on('connect', () => {

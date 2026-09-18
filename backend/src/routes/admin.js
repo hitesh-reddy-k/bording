@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { col } from '../db.js';
 import { generateEmbedding, generateSimpleEmbedding } from '../lib/embeddings.js';
@@ -627,6 +629,49 @@ router.post('/seed', async (req, res) => {
     });
   } catch (err) {
     console.error('Seeding error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/engine-logs - fetch tail of live PacificDB db_engine.exe logs
+router.get('/engine-logs', (req, res) => {
+  try {
+    const tailCount = Math.min(Math.max(parseInt(req.query.tail || '100', 10), 10), 500);
+    const logPath = path.join(
+      process.env.LOCALAPPDATA || (process.env.USERPROFILE + '\\AppData\\Local'),
+      'PacificDB',
+      'engine.log'
+    );
+
+    if (!fs.existsSync(logPath)) {
+      return res.json({
+        exists: false,
+        path: logPath,
+        lines: ['Log file not found at: ' + logPath],
+        sizeMb: 0,
+      });
+    }
+
+    const stat = fs.statSync(logPath);
+    const readBytes = Math.min(stat.size, 64 * 1024); // read last 64KB
+    const buffer = Buffer.alloc(readBytes);
+    const fd = fs.openSync(logPath, 'r');
+    fs.readSync(fd, buffer, 0, readBytes, stat.size - readBytes);
+    fs.closeSync(fd);
+
+    const text = buffer.toString('utf8');
+    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = rawLines.slice(-tailCount);
+
+    res.json({
+      exists: true,
+      path: logPath,
+      sizeMb: parseFloat((stat.size / 1024 / 1024).toFixed(2)),
+      modifiedAt: stat.mtime.toISOString(),
+      lines,
+      totalReturned: lines.length,
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

@@ -104,6 +104,41 @@ export function AdminDashboard() {
     }
   };
 
+  const [engineLogs, setEngineLogs] = useState<string[]>([]);
+  const [logPath, setLogPath] = useState<string>('');
+  const [logSizeMb, setLogSizeMb] = useState<number>(0);
+  const [autoScroll, setAutoScroll] = useState<boolean>(true);
+  const [logFilter, setLogFilter] = useState<string>('');
+  const [tailCount, setTailCount] = useState<number>(100);
+  const [logPaused, setLogPaused] = useState<boolean>(false);
+  const logTerminalRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchEngineLogs = async () => {
+    if (logPaused) return;
+    try {
+      const res = await api.getEngineLogs(tailCount) as any;
+      if (res && res.lines) {
+        setEngineLogs(res.lines);
+        if (res.path) setLogPath(res.path);
+        if (res.sizeMb !== undefined) setLogSizeMb(res.sizeMb);
+      }
+    } catch (_e) {
+      // Ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchEngineLogs();
+    const logInterval = setInterval(fetchEngineLogs, 2500);
+    return () => clearInterval(logInterval);
+  }, [logPaused, tailCount]);
+
+  useEffect(() => {
+    if (autoScroll && logTerminalRef.current) {
+      logTerminalRef.current.scrollTop = logTerminalRef.current.scrollHeight;
+    }
+  }, [engineLogs, autoScroll]);
+
   useEffect(() => {
     fetchStats();
     intervalRef.current = setInterval(fetchStats, 3500);
@@ -514,6 +549,129 @@ export function AdminDashboard() {
               '⚡ Generate Dataset'
             )}
           </button>
+        </div>
+
+        {/* ── Live PacificDB db_engine.exe Logs ── */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <h4 style={{ margin: 0 }}>Live PacificDB Engine Logs (`db_engine.exe`)</h4>
+              <span style={{
+                fontSize: '0.7rem',
+                padding: '0.15rem 0.5rem',
+                borderRadius: 999,
+                background: logPaused ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                color: logPaused ? '#ef4444' : '#10b981',
+                border: `1px solid ${logPaused ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: logPaused ? '#ef4444' : '#10b981' }} />
+                {logPaused ? 'PAUSED' : 'STREAMING (every 2.5s)'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {logPath && (
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                  {logSizeMb} MB · {logPath.slice(-35)}
+                </span>
+              )}
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => setLogPaused(p => !p)}
+              >
+                {logPaused ? '▶ Resume' : '⏸ Pause'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => setAutoScroll(s => !s)}
+              >
+                {autoScroll ? '✓ Auto-scroll' : 'Auto-scroll Off'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(engineLogs.join('\n'));
+                  addToast('Logs copied to clipboard!', 'success');
+                }}
+              >
+                📋 Copy
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <input
+              type="text"
+              placeholder="Filter logs (e.g. MEMORY, LSM, connection, BUSY)..."
+              value={logFilter}
+              onChange={e => setLogFilter(e.target.value)}
+              style={{ flex: 1, fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+            />
+            <select
+              value={tailCount}
+              onChange={e => setTailCount(Number(e.target.value))}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', width: 'auto' }}
+            >
+              <option value={50}>Last 50 lines</option>
+              <option value={100}>Last 100 lines</option>
+              <option value={200}>Last 200 lines</option>
+              <option value={500}>Last 500 lines</option>
+            </select>
+          </div>
+
+          <div
+            ref={logTerminalRef}
+            style={{
+              backgroundColor: '#0a0f1d',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem',
+              height: '320px',
+              overflowY: 'auto',
+              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+              fontSize: '0.73rem',
+              lineHeight: 1.55,
+            }}
+          >
+            {engineLogs.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+                Fetching live engine logs...
+              </div>
+            ) : (
+              engineLogs
+                .filter(l => !logFilter || l.toLowerCase().includes(logFilter.toLowerCase()))
+                .map((line, idx) => {
+                  let color = '#94a3b8';
+                  if (line.includes('READ_ONLY_EMERGENCY') || line.includes('ERROR') || line.includes('PRESSURE') || line.includes('timed out')) {
+                    color = '#f87171'; // red
+                  } else if (line.includes('BUSY') || line.includes('PRESSURE')) {
+                    color = '#fbbf24'; // amber
+                  } else if (line.includes('NORMAL') || line.includes('OK') || line.includes('completed')) {
+                    color = '#34d399'; // green
+                  } else if (line.includes('[MEMORY]') || line.includes('[MEMORY_MONITOR]')) {
+                    color = '#38bdf8'; // sky cyan
+                  } else if (line.includes('[LSM]') || line.includes('[WAL]')) {
+                    color = '#a78bfa'; // purple
+                  } else if (line.includes('client_connected') || line.includes('client_disconnected')) {
+                    color = '#64748b'; // slate
+                  }
+
+                  return (
+                    <div key={idx} style={{ color, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.2)', userSelect: 'none', marginRight: '0.5rem' }}>
+                        {(idx + 1).toString().padStart(3, ' ')}
+                      </span>
+                      {line}
+                    </div>
+                  );
+                })
+            )}
+          </div>
         </div>
 
         {/* ── Terminal log ── */}

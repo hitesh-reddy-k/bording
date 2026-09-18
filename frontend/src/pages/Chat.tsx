@@ -7,6 +7,7 @@ interface Message {
   _id: string;
   channelId: string;
   authorId: string;
+  authorName?: string;
   content: string;
   createdAt: string;
 }

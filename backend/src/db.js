@@ -92,14 +92,14 @@ function requestRaw(payload, retries = 5) {
           try {
             const parsed = JSON.parse(buf.trim());
             if (parsed.error && parsed.error !== 'ok' && parsed.status !== 'ok') {
-              if (parsed.error === 'server_busy' && remainingRetries > 0) {
+              if ((parsed.error === 'server_busy' || parsed.error === 'memory_pressure' || parsed.error === 'write_stalled') && remainingRetries > 0) {
                 remainingRetries--;
                 done = true;
                 clearTimeout(timer);
                 s.destroy();
-                const baseDelay = parsed.retry_after_ms || (80 * Math.pow(1.8, 5 - remainingRetries));
-                const jitter = Math.floor(Math.random() * 40);
-                const delay = Math.min(baseDelay + jitter, 1500);
+                const baseDelay = parsed.retry_after_ms || (150 * Math.pow(1.8, 5 - remainingRetries));
+                const jitter = Math.floor(Math.random() * 50);
+                const delay = Math.min(baseDelay + jitter, 2500);
                 setTimeout(attempt, delay);
                 return;
               }

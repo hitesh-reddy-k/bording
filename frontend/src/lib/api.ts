@@ -116,6 +116,8 @@ export const api = {
   chaosDataIntegrity: () => request('POST', '/api/admin/chaos/data-integrity'),
   seedData: (data: { users?: number; projects?: number; tasks?: number; messages?: number; workspaceId?: string }) =>
     request('POST', '/api/admin/seed', data),
+  getEngineLogs: (tail = 100) =>
+    request('GET', `/api/admin/engine-logs?tail=${tail}`),
 };
 
 export function setToken(token: string) {

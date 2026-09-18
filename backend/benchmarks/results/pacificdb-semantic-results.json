@@ -1,0 +1,82 @@
+{
+  "benchmark": "PacificDB Native Semantic Search Benchmark",
+  "timestamp": "2026-09-18T17:52:25.914Z",
+  "database": "PacificDB Community",
+  "searchMode": "NATIVE PACIFICDB VECTOR SEARCH",
+  "dataset": {
+    "vectors": 10000,
+    "dimensions": 384,
+    "metric": "cosine",
+    "topK": 10,
+    "queries": 50,
+    "insertionDurationSec": 0,
+    "insertionRateVectorsPerSec": 0,
+    "totalBytesInserted": 0
+  },
+  "index": {
+    "type": "PacificDB Native Vector Search (Engine HNSW / SIMD)",
+    "syncTimeMs": 2802.28,
+    "distanceMetric": "cosine",
+    "dimensions": 384
+  },
+  "correctness": {
+    "validationSampleSize": 10000,
+    "recallAt1": 40,
+    "recallAt5": 28,
+    "recallAt10": 30
+  },
+  "concurrencyPerformance": [
+    {
+      "concurrency": 1,
+      "totalQueries": 50,
+      "durationSec": 19.332,
+      "qps": 2.6,
+      "min": 313.36,
+      "p50": 385.05,
+      "p90": 424.62,
+      "p95": 440.36,
+      "p99": 457.38,
+      "max": 459,
+      "avg": 386.63
+    },
+    {
+      "concurrency": 8,
+      "totalQueries": 50,
+      "durationSec": 3.617,
+      "qps": 13.8,
+      "min": 463.99,
+      "p50": 534.81,
+      "p90": 592.95,
+      "p95": 702.58,
+      "p99": 785.71,
+      "max": 805.04,
+      "avg": 543.66
+    },
+    {
+      "concurrency": 32,
+      "totalQueries": 50,
+      "durationSec": 3.906,
+      "qps": 12.8,
+      "min": 1239.46,
+      "p50": 2132.51,
+      "p90": 3079.47,
+      "p95": 3185.29,
+      "p99": 3270.8,
+      "max": 3289.51,
+      "avg": 2139.1
+    }
+  ],
+  "memory": {
+    "server": {
+      "beforeMb": 682,
+      "afterMb": 703,
+      "pid": 3528
+    },
+    "client": {
+      "beforeRssMb": 44,
+      "afterRssMb": 87,
+      "beforeHeapMb": 5,
+      "afterHeapMb": 42
+    }
+  }
+}

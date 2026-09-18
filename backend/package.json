@@ -11,7 +11,11 @@
     "seed:tasks": "node scripts/seed-demo-tasks.mjs",
     "seed:chat": "node scripts/seed-demo-chat.mjs",
     "reindex:vectors": "node scripts/reindex-vectors.mjs",
-    "setup:db": "node scripts/setup-db.mjs"
+    "setup:db": "node scripts/setup-db.mjs",
+    "benchmark:semantic": "node benchmarks/pacificdb-semantic-search.mjs",
+    "benchmark:semantic:10k": "node benchmarks/pacificdb-semantic-search.mjs --vectors 10000",
+    "benchmark:semantic:100k": "node benchmarks/pacificdb-semantic-search.mjs --vectors 100000",
+    "benchmark:semantic:1m": "node benchmarks/pacificdb-semantic-search.mjs --vectors 1000000"
   },
   "dependencies": {
     "cors": "^2.8.5",

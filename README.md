@@ -63,6 +63,38 @@ FRONTEND_URL=http://localhost:5173
 JWT_SECRET=pacificboard-super-secret-key-change-in-production
 ```
 
+### PacificDB project and database
+
+This repository is the **PacificBoard** project. Its PacificDB project is
+`project_6aac82acc9e681fba249ab88`, and the application database inside that
+project is `pacificboard`.
+
+PacificBoard uses these main collections:
+
+`users`, `workspaces`, `projects`, `tasks`, `messages`, `comments`, `files`,
+`activity`, `notifications`, and `vectors`.
+
+The `files` collection stores uploaded image and video media. The database and
+collections are created by the setup script or automatically on first insert.
+
+To verify the project, database, and collections from the PacificDB CLI:
+
+```text
+pacificdb.exe --no-start
+use project project_6aac82acc9e681fba249ab88
+use pacificboard
+list collections
+count files {}
+quit
+```
+
+From this repository, the setup script can also be run with:
+
+```bash
+cd backend
+npm run setup:db
+```
+
 ---
 
 ### 3. Install Dependencies

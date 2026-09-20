@@ -16,6 +16,52 @@ The current implementation uses the existing `files` collection:
 
 The database name can be changed with `PACIFICDB_DBNAME` in `backend/.env`.
 
+## PacificDB project and database
+
+This application is the **PacificBoard** project. The PacificDB project used
+by the repository is:
+
+```text
+project_6aac82acc9e681fba249ab88
+```
+
+Within that PacificDB project, the application database is:
+
+```text
+pacificboard
+```
+
+The media collection is:
+
+```text
+files
+```
+
+Other PacificBoard collections include `users`, `workspaces`, `projects`,
+`tasks`, `messages`, `comments`, `activity`, `notifications`, and `vectors`.
+
+### Verify from the PacificDB CLI
+
+Run the PacificDB CLI with the engine already running:
+
+```text
+pacificdb.exe --no-start
+use project project_6aac82acc9e681fba249ab88
+use pacificboard
+list collections
+count files {}
+quit
+```
+
+`list collections` should show `files` after database setup or the first
+successful upload. `count files {}` shows how many media records are stored in
+PacificDB for the current database. The repository setup command is:
+
+```bash
+cd backend
+npm run setup:db
+```
+
 ## How storage works
 
 When a user uploads a file:

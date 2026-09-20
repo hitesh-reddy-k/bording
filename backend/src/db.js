@@ -236,6 +236,29 @@ function collection(name) {
       return (r.data || []).map(cleanDoc);
     },
 
+    /** Store a vector in PacificDB's native vector index. */
+    async insertVector(id, vector, metadata = {}) {
+      const r = await request({
+        ...base,
+        action: 'insertVector',
+        data: { ...metadata, id, kind: 'vector', vector },
+      });
+      return { id, inserted: r.status === 'ok' };
+    },
+
+    /** Query PacificDB's native vector index instead of scanning documents. */
+    async queryVector(vector, opts = {}) {
+      const r = await request({
+        ...base,
+        action: 'queryVector',
+        vector,
+        k: opts.k || 10,
+        metric: opts.metric || 'cosine',
+        filter: opts.filter || {},
+      });
+      return r.data || [];
+    },
+
     async updateOne(filter, update) {
       const fields = update.$set ? { ...update, ...update.$set } : update;
       delete fields.$set;

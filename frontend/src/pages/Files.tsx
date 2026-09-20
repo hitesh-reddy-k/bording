@@ -11,6 +11,7 @@ interface FileRecord {
   uploaderId: string;
   createdAt: string;
   url?: string;
+  previewUrl?: string;
 }
 
 function formatSize(bytes: number) {
@@ -36,6 +37,8 @@ export function Files() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [activeMedia, setActiveMedia] = useState<FileRecord | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -43,7 +46,18 @@ export function Files() {
     setLoading(true);
     try {
       const f = await api.listFiles(workspace._id);
-      setFiles(f as FileRecord[]);
+      const records = f as FileRecord[];
+      setFiles(records);
+      const media = records.filter(file => file.mimeType?.startsWith('image/') || file.mimeType?.startsWith('video/'));
+      const loaded = await Promise.all(media.map(async file => {
+        try {
+          const result = await api.getFilePreview(file._id) as { url?: string };
+          return result.url ? [file._id, result.url] as const : null;
+        } catch {
+          return null;
+        }
+      }));
+      setPreviews(Object.fromEntries(loaded.filter((item): item is readonly [string, string] => item !== null)));
     } finally {
       setLoading(false);
     }
@@ -117,14 +131,14 @@ export function Files() {
             type="file"
             style={{ display: 'none' }}
             onChange={handleUpload}
-            accept="*/*"
+            accept="image/*,video/*"
           />
           <button
             className="btn btn-primary btn-sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading ? `Uploading ${uploadProgress}%` : '↑ Upload File'}
+            {uploading ? `Uploading ${uploadProgress}%` : '↑ Upload Media'}
           </button>
         </div>
       </div>
@@ -171,8 +185,10 @@ export function Files() {
                   marginBottom: '0.875rem',
                   fontSize: '2.5rem',
                 }}>
-                  {f.mimeType?.startsWith('image/') ? (
-                    <span style={{ fontSize: '2rem' }}>🖼️</span>
+                  {previews[f._id] && f.mimeType?.startsWith('image/') ? (
+                    <img src={previews[f._id]} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
+                  ) : previews[f._id] && f.mimeType?.startsWith('video/') ? (
+                    <video src={previews[f._id]} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
                   ) : (
                     <FileIcon mimeType={f.mimeType || ''} />
                   )}
@@ -184,6 +200,11 @@ export function Files() {
                   {formatSize(f.size)}
                 </div>
                 <div className="flex gap-1 mt-2">
+                  {(f.mimeType?.startsWith('image/') || f.mimeType?.startsWith('video/')) && previews[f._id] && (
+                    <button className="btn btn-primary btn-sm flex-1" style={{ fontSize: '0.7rem' }} onClick={() => setActiveMedia(f)}>
+                      View
+                    </button>
+                  )}
                   <button
                     className="btn btn-ghost btn-sm flex-1"
                     style={{ fontSize: '0.7rem' }}
@@ -218,6 +239,9 @@ export function Files() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  {(f.mimeType?.startsWith('image/') || f.mimeType?.startsWith('video/')) && previews[f._id] && (
+                    <button className="btn btn-primary btn-sm" onClick={() => setActiveMedia(f)}>View</button>
+                  )}
                   <button className="btn btn-ghost btn-sm" onClick={() => downloadFile(f._id, f.name)}>↓</button>
                   {f.uploaderId === user?._id && (
                     <button className="btn btn-danger btn-sm" onClick={() => deleteFile(f._id, f.name)}>✕</button>
@@ -228,6 +252,26 @@ export function Files() {
           </div>
         )}
       </div>
+
+      {activeMedia && previews[activeMedia._id] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview ${activeMedia.name}`}
+          onClick={() => setActiveMedia(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 20, background: 'rgba(3, 7, 18, 0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 'min(1000px, 95vw)', maxHeight: '90vh', position: 'relative' }}>
+            <button className="btn btn-ghost" onClick={() => setActiveMedia(null)} style={{ position: 'absolute', right: 0, top: '-2.5rem' }}>✕ Close</button>
+            {activeMedia.mimeType.startsWith('image/') ? (
+              <img src={previews[activeMedia._id]} alt={activeMedia.name} style={{ display: 'block', maxWidth: '95vw', maxHeight: '85vh', borderRadius: 'var(--radius)' }} />
+            ) : (
+              <video src={previews[activeMedia._id]} controls autoPlay style={{ display: 'block', maxWidth: '95vw', maxHeight: '85vh', borderRadius: 'var(--radius)' }} />
+            )}
+            <div style={{ color: 'white', textAlign: 'center', marginTop: '0.75rem', fontSize: '0.8rem' }}>{activeMedia.name}</div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -4,6 +4,18 @@ import { requireAuth } from '../middleware/auth.js';
 import { generateSimpleEmbedding } from './tasks.js';
 
 const router = express.Router();
+const NATIVE_VECTOR_COLLECTION = 'vectors_native';
+let cachedVectorCount = 0;
+let cachedVectorCountAt = 0;
+
+async function getVectorCount() {
+  const now = Date.now();
+  if (now - cachedVectorCountAt > 60000) {
+    cachedVectorCount = await col('vectors').count({});
+    cachedVectorCountAt = now;
+  }
+  return cachedVectorCount;
+}
 
 // GET /api/search?q=query&workspaceId=xxx&type=all|tasks|projects|comments
 router.get('/', requireAuth, async (req, res) => {
@@ -50,7 +62,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // GET /api/search/semantic?q=query&workspaceId=xxx&limit=10
 // Production-grade Vector similarity search powered by PacificDB vectors
-import { generateEmbedding, cosineSimilarity } from '../lib/embeddings.js';
+import { generateEmbedding } from '../lib/embeddings.js';
 
 router.get('/semantic', requireAuth, async (req, res) => {
   try {
@@ -62,45 +74,37 @@ router.get('/semantic', requireAuth, async (req, res) => {
     // 1. Generate query embedding via domain-aware semantic model
     const queryEmbedding = generateEmbedding(q);
 
-    // 2. Fetch all indexed vectors from PacificDB
-    const vectors = await col('vectors').find({});
-    const totalIndexed = vectors.length;
+    // 2. Query PacificDB's native vector index. The index stores vectors using
+    // the engine's insertVector/queryVector protocol, so the API does not need
+    // to transfer or score the full collection in Node.js.
+    const nativeResults = await col(NATIVE_VECTOR_COLLECTION).queryVector(queryEmbedding, {
+      k: Math.min(100, maxResults * 10),
+      metric: 'cosine',
+      // Keep the original behavior: search globally, then resolve/boost the
+      // active workspace when task metadata is available. Older vector records
+      // may not carry workspaceId in the native metadata.
+      filter: {},
+    });
+    // Native vector records are stored in an engine-managed index and are not
+    // included reliably by ordinary collection count; report source coverage.
+    const totalIndexed = await getVectorCount();
 
-    if (totalIndexed === 0) {
-      return res.json({ query: q, vectors_searched: 0, totalVectors: 0, results: [] });
+    if (nativeResults.length === 0) {
+      return res.json({ query: q, vectors_searched: totalIndexed, totalVectors: totalIndexed, results: [] });
     }
 
-    // 3. Pre-fetch workspace tasks for instant O(1) task resolution
+    // 3. Resolve only the returned task IDs. Full task documents are never
+    // loaded for the entire workspace.
     const taskMap = new Map();
-    const wsTaskIds = new Set();
-    if (workspaceId) {
-      const wsTasks = await col('tasks').find({ workspaceId });
-      for (const t of wsTasks) {
-        taskMap.set(t._id, t);
-        wsTaskIds.add(t._id);
-      }
-    }
+    const scored = nativeResults.map(vec => ({
+      _id: vec._id || vec.id,
+      taskId: vec.taskId,
+      workspaceId: vec.workspaceId,
+      content: vec.content,
+      score: Math.max(0, Math.min(1, Number(vec.score) || 0)),
+    }));
 
-    // 4. Compute cosine similarity for all vectors
-    const scored = [];
-    for (const vec of vectors) {
-      if (!vec.embedding || vec.embedding.length !== 384) continue;
-      let score = cosineSimilarity(queryEmbedding, vec.embedding);
-
-      // Workspace boost: slightly prioritize active workspace items if they have semantic overlap
-      if (score > 0.10 && (wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId)) {
-        score = Math.min(1.0, score * 1.08);
-      }
-
-      scored.push({
-        ...vec,
-        score,
-        isWorkspaceTask: wsTaskIds.has(vec.taskId) || vec.workspaceId === workspaceId,
-      });
-    }
-
-    // 5. Sort candidates DESC by similarity score
-    scored.sort((a, b) => b.score - a.score);
+    // 4. Native results are already sorted by similarity.
 
     // 6. Deduplicate by taskId and normalized task title
     const seenTaskIds = new Set();

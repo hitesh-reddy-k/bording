@@ -80,6 +80,7 @@ export const api = {
   // Files
   listFiles: (workspaceId: string) =>
     request('GET', `/api/files?workspaceId=${workspaceId}`),
+  getFilePreview: (id: string) => request('GET', `/api/files/${id}/preview`),
   deleteFile: (id: string) => request('DELETE', `/api/files/${id}`),
   uploadFile: async (workspaceId: string, file: File, taskId?: string) => {
     const token = getToken();

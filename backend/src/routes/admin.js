@@ -19,6 +19,7 @@ const simulatorState = {
   errorCount: 0,
   startTime: null,
   bots: [],
+  inFlight: 0,
   chaosTests: {
     leaderFailover: 'PENDING',
     followerRecovery: 'PENDING',
@@ -36,6 +37,7 @@ const simulatorState = {
 
 let opsThisSecond = 0;
 let opsInterval = null;
+const MAX_SIMULATOR_IN_FLIGHT = 32;
 
 // Update ops/sec every second
 setInterval(() => {
@@ -73,6 +75,11 @@ function randTitle() {
 }
 
 async function runBotOp(workspaceId, projectId, userId) {
+  // Do not let fast bot timers create an unbounded backlog when PacificDB is
+  // slower than the configured bot interval.
+  if (simulatorState.inFlight >= MAX_SIMULATOR_IN_FLIGHT) return;
+  simulatorState.inFlight++;
+
   const op = rand(BOT_OPS);
   const start = Date.now();
   try {
@@ -97,17 +104,25 @@ async function runBotOp(workspaceId, projectId, userId) {
         };
         await col('tasks').insertOne(task);
         // Store vector
+        const vectorId = uuidv4();
+        const embedding = generateSimpleEmbedding(title);
         await col('vectors').insertOne({
-          _id: uuidv4(),
+          _id: vectorId,
           taskId: task._id,
-          embedding: generateSimpleEmbedding(title),
+          workspaceId,
+          embedding,
           content: title,
           createdAt: new Date().toISOString(),
+        });
+        await col('vectors_native').insertVector(vectorId, embedding, {
+          taskId: task._id,
+          workspaceId,
+          content: title,
         });
         break;
       }
       case 'update_task': {
-        const tasks = await col('tasks').find({ projectId });
+        const tasks = await col('tasks').find({ projectId }, { limit: 10 });
         if (tasks.length > 0) {
           const task = rand(tasks);
           await col('tasks').updateOne(
@@ -118,7 +133,7 @@ async function runBotOp(workspaceId, projectId, userId) {
         break;
       }
       case 'comment': {
-        const tasks = await col('tasks').find({ projectId });
+        const tasks = await col('tasks').find({ projectId }, { limit: 10 });
         if (tasks.length > 0) {
           const task = rand(tasks);
           await col('comments').insertOne({
@@ -158,6 +173,8 @@ async function runBotOp(workspaceId, projectId, userId) {
     recordOp(Date.now() - start);
   } catch (err) {
     simulatorState.errorCount++;
+  } finally {
+    simulatorState.inFlight--;
   }
 }
 
@@ -236,6 +253,7 @@ router.get('/stats', async (req, res) => {
         running: simulatorState.running,
         userCount: simulatorState.userCount,
         targetUserCount: simulatorState.targetUserCount,
+        inFlight: simulatorState.inFlight,
         uptime: simulatorState.startTime ? Math.floor((Date.now() - simulatorState.startTime) / 1000) : 0,
       },
       // Replication

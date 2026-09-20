@@ -14,7 +14,15 @@ router.get('/', requireAuth, async (req, res) => {
     if (!workspaceId) return res.status(400).json({ error: 'workspaceId required' });
 
     const files = await col('files').find({ workspaceId });
-    const sorted = files.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Do not send the PacificDB-stored base64 payload with every listing request.
+    // Media is loaded only when a user previews it.
+    const sorted = files
+      .map(({ dataUrl, ...metadata }) => ({
+        ...metadata,
+        url: `/api/files/${metadata._id}/download`,
+        previewUrl: `/api/files/${metadata._id}/preview`,
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(sorted);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -91,12 +91,19 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Store vector embedding (simple text embedding simulation)
     const embedding = generateSimpleEmbedding(title + ' ' + description);
+    const vectorId = uuidv4();
     await col('vectors').insertOne({
-      _id: uuidv4(),
+      _id: vectorId,
       taskId: task._id,
+      workspaceId,
       embedding,
       content: title + ' ' + description,
       createdAt: new Date().toISOString(),
+    });
+    await col('vectors_native').insertVector(vectorId, embedding, {
+      taskId: task._id,
+      workspaceId,
+      content: title + ' ' + description,
     });
 
     // Log activity
@@ -157,6 +164,11 @@ router.patch('/:id', requireAuth, async (req, res) => {
       const existing = await col('vectors').findOne({ taskId: req.params.id });
       if (existing) {
         await col('vectors').updateOne({ taskId: req.params.id }, { $set: { embedding, content: newContent } });
+        await col('vectors_native').insertVector(existing._id, embedding, {
+          taskId: req.params.id,
+          workspaceId: updated.workspaceId,
+          content: newContent,
+        });
       }
     }
 
@@ -174,7 +186,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
       Promise.all(comments.map(c => col('comments').deleteOne({ _id: c._id })))
     );
     await col('vectors').find({ taskId: req.params.id }).then(vecs =>
-      Promise.all(vecs.map(v => col('vectors').deleteOne({ _id: v._id })))
+      Promise.all(vecs.flatMap(v => [
+        col('vectors').deleteOne({ _id: v._id }),
+        col('vectors_native').deleteOne({ id: v._id }),
+      ]))
     );
     res.json({ success: true });
   } catch (err) {

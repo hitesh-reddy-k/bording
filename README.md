@@ -273,6 +273,4 @@ Built with ❤️ using **PacificDB Community Edition**.
 
 ### Discord
 
-A Discord invite was not configured in the repository. Replace the placeholder below with the project server invite when one is available:
-
-[Join the PacificBoard Discord](https://discord.gg/REPLACE_WITH_DISCORD_INVITE)
+[Join the PacificBoard Discord](https://discord.gg/67w8ET9Sf2)

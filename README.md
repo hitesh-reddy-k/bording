@@ -258,3 +258,21 @@ newprojectusingpacificdb/
 
 This project is licensed under the [MIT License](LICENSE).
 Built with ❤️ using **PacificDB Community Edition**.
+
+---
+
+## 📚 Community and project links
+
+- [Documentation](docs/MEDIA_STORAGE.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md)
+- [License](LICENSE)
+- [Pull request template](.github/pull_request_template.md)
+- [Issue templates](.github/ISSUE_TEMPLATE/)
+
+### Discord
+
+A Discord invite was not configured in the repository. Replace the placeholder below with the project server invite when one is available:
+
+[Join the PacificBoard Discord](https://discord.gg/REPLACE_WITH_DISCORD_INVITE)

@@ -1,4 +1,9 @@
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const projectId = process.env.PACIFICDB_PROJECT_ID;
 
 const proc = spawn('C:\\Program Files\\PacificDB Community\\bin\\pacificdb.exe', ['--no-start'], {
   stdio: ['pipe', 'pipe', 'pipe'],
@@ -9,7 +14,7 @@ proc.stdout.on('data', d => { out += d.toString(); });
 proc.stderr.on('data', d => { out += d.toString(); });
 
 const cmds = [
-  'use project project_6aac82acc9e681fba249ab88',
+  ...(projectId ? [`use project ${projectId}`] : []),
   'use pacificboard',
   'count users {}',
   'count workspaces {}',

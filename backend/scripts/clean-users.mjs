@@ -1,4 +1,8 @@
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const projectId = process.env.PACIFICDB_PROJECT_ID;
 
 const proc = spawn('C:\\Program Files\\PacificDB Community\\bin\\pacificdb.exe', ['--no-start'], {
   stdio: ['pipe', 'pipe', 'pipe'],
@@ -10,7 +14,7 @@ proc.stderr.on('data', d => { out += d.toString(); });
 
 // Delete the test user with no passwordHash
 const cmds = [
-  'use project project_6aac82acc9e681fba249ab88',
+  ...(projectId ? [`use project ${projectId}`] : []),
   'use pacificboard',
   'find users {}',
   'delete users {"_id":"u1"}',

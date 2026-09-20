@@ -65,9 +65,10 @@ JWT_SECRET=pacificboard-super-secret-key-change-in-production
 
 ### PacificDB project and database
 
-This repository is the **PacificBoard** project. Its PacificDB project is
-`project_6aac82acc9e681fba249ab88`, and the application database inside that
-project is `pacificboard`.
+This repository is the **PacificBoard** project. When setting it up, create or
+select a PacificDB project for your own deployment. The application database
+inside that project is `pacificboard`. The repository does not commit a
+project-specific ID.
 
 PacificBoard uses these main collections:
 
@@ -77,11 +78,18 @@ PacificBoard uses these main collections:
 The `files` collection stores uploaded image and video media. The database and
 collections are created by the setup script or automatically on first insert.
 
+For CLI helper scripts, optionally set your selected project ID in
+`backend/.env`:
+
+```env
+PACIFICDB_PROJECT_ID=<your-pacificdb-project-id>
+```
+
 To verify the project, database, and collections from the PacificDB CLI:
 
 ```text
 pacificdb.exe --no-start
-use project project_6aac82acc9e681fba249ab88
+use project <your-pacificdb-project-id>
 use pacificboard
 list collections
 count files {}
@@ -94,6 +102,11 @@ From this repository, the setup script can also be run with:
 cd backend
 npm run setup:db
 ```
+
+The setup command reads `PACIFICDB_PROJECT_ID` when it is provided, selects
+that project, opens the `pacificboard` database, and creates the standard
+collections. If the project ID is omitted, it uses the PacificDB CLI's current
+default project.
 
 ---
 

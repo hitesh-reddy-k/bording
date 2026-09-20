@@ -1,4 +1,8 @@
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const projectId = process.env.PACIFICDB_PROJECT_ID;
 
 const proc = spawn('C:\\Program Files\\PacificDB Community\\bin\\pacificdb.exe', ['--no-start'], {
   stdio: ['pipe', 'pipe', 'pipe'],
@@ -10,7 +14,7 @@ proc.stderr.on('data', d => { out += d.toString(); });
 
 // Use 'explain' to see what query plan is used, and 'request' to see raw format
 const cmds = [
-  'use project project_6aac82acc9e681fba249ab88',
+  ...(projectId ? [`use project ${projectId}`] : []),
   'use pacificboard',
   // Try the raw 'request' command to see what parameters the CLI sends
   'request {"action":"find","dbName":"pacificboard","collection":"users","filter":{"name":"Alice Updated"}}',

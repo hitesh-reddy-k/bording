@@ -18,14 +18,9 @@ The database name can be changed with `PACIFICDB_DBNAME` in `backend/.env`.
 
 ## PacificDB project and database
 
-This application is the **PacificBoard** project. The PacificDB project used
-by the repository is:
-
-```text
-project_6aac82acc9e681fba249ab88
-```
-
-Within that PacificDB project, the application database is:
+This application is the **PacificBoard** project. During setup, create or
+select a PacificDB project for your own deployment. The repository does not
+commit a project-specific ID. Within that project, the application database is:
 
 ```text
 pacificboard
@@ -46,7 +41,7 @@ Run the PacificDB CLI with the engine already running:
 
 ```text
 pacificdb.exe --no-start
-use project project_6aac82acc9e681fba249ab88
+use project <your-pacificdb-project-id>
 use pacificboard
 list collections
 count files {}
@@ -55,12 +50,23 @@ quit
 
 `list collections` should show `files` after database setup or the first
 successful upload. `count files {}` shows how many media records are stored in
-PacificDB for the current database. The repository setup command is:
+PacificDB for the current database. To run the repository setup end to end:
+
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Set `PACIFICDB_PROJECT_ID` to the project you created or selected. This
+   keeps the project ID local to your deployment instead of committing it.
+3. Confirm `PACIFICDB_DBNAME=pacificboard`.
+4. Start the PacificDB engine.
+5. Run:
 
 ```bash
 cd backend
 npm run setup:db
 ```
+
+The setup script selects the configured project, opens the `pacificboard`
+database, and creates the standard collections. If no project ID is set, the
+PacificDB CLI's current default project is used.
 
 ## How storage works
 
